@@ -305,33 +305,56 @@ function validateForm() {
 [nameInput, emailInput].forEach(el => el.addEventListener('input', validateForm));
 agreeCheck.addEventListener('change', validateForm);
 
-// --- Submit (simulated "add to spreadsheet") ---
-submitBtn.addEventListener('click', () => {
+// --- Submit: POST to your Make.com webhook, which appends a row in Google Sheets ---
+
+// PASTE YOUR MAKE.COM WEBHOOK URL HERE:https://hook.us2.make.com/nbfjnioexc6b7mdadqv9htxi1b2rwqiw
+const WEBHOOK_URL = 'https://hook.us1.make.com/YOUR_WEBHOOK_ID_HERE';
+
+submitBtn.addEventListener('click', async () => {
   const name = nameInput.value.trim();
   const email = emailInput.value.trim();
 
-  // In production: replace this block with a POST to your backend
-  // (e.g. a Google Apps Script Web App endpoint, or a Sheets API call)
-  // that appends a row to the subscriber spreadsheet.
   const record = {
     name,
     email,
     portfolio: portfolio.map(s => s.symbol).join(', '),
     status: 'active'
   };
-  subscribers.push(record);
-  renderSheet();
 
-  statusBox.className = 'ok';
-  statusBox.textContent = `Subscribed! ${email} will start receiving updates on ${record.portfolio}.`;
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Subscribing...';
 
-  // reset form
-  nameInput.value = '';
-  emailInput.value = '';
-  agreeCheck.checked = false;
-  portfolio = [];
-  renderPortfolio();
-  validateForm();
+  try {
+    const response = await fetch(WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(record)
+    });
+
+    if (!response.ok) throw new Error('Webhook responded with an error');
+
+    // Keep a local copy for the on-page preview table (purely visual, not the source of truth)
+    subscribers.push(record);
+    renderSheet();
+
+    statusBox.className = 'ok';
+    statusBox.textContent = `Subscribed! ${email} will start receiving updates on ${record.portfolio}.`;
+
+    // reset form
+    nameInput.value = '';
+    emailInput.value = '';
+    agreeCheck.checked = false;
+    portfolio = [];
+    renderPortfolio();
+
+  } catch (err) {
+    statusBox.className = 'err';
+    statusBox.textContent = 'Something went wrong submitting your subscription. Please try again.';
+    console.error(err);
+  } finally {
+    submitBtn.textContent = 'Subscribe';
+    validateForm();
+  }
 });
 
 function renderSheet() {

@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>EPPN — Subscribe</title>
+<style>
+  :root {
+    --ink: #1a1f26;
+    --paper: #fafaf8;
+    --accent: #2f5d50;
+    --accent-light: #e8f0ed;
+    --border: #d8d8d2;
+    --danger: #a13d2e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: Georgia, 'Times New Roman', serif;
+    display: flex;
+    justify-content: center;
+    padding: 40px 16px;
+  }
+  .card {
+    width: 100%;
+    max-width: 560px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 32px;
+  }
+  h1 {
+    font-size: 24px;
+    margin: 0 0 4px;
+  }
+  .sub {
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 24px;
+  }
+  label {
+    display: block;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    font-weight: bold;
+    margin: 16px 0 4px;
+  }
+  input[type=text], input[type=email] {
+    width: 100%;
+    padding: 9px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+  }
+  input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  #ticker-results {
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    max-height: 160px;
+    overflow-y: auto;
+    display: none;
+  }
+  .result-row {
+    padding: 8px 10px;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+  }
+  .result-row:hover { background: var(--accent-light); }
+  .result-row .sym { font-weight: bold; }
+  .result-row .name { color: #777; }
+
+  #portfolio {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .stock-chip {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--accent-light);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+  }
+  .stock-chip button {
+    background: none;
+    border: none;
+    color: var(--danger);
+    font-size: 15px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .empty-note {
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    color: #999;
+    padding: 6px 0;
+  }
+
+  .agree {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 20px;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    color: #555;
+  }
+  .agree input { margin-top: 3px; }
+
+  button.submit {
+    width: 100%;
+    margin-top: 20px;
+    padding: 12px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-family: Arial, sans-serif;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  button.submit:disabled {
+    background: #b7b7b1;
+    cursor: not-allowed;
+  }
+
+  #status {
+    margin-top: 14px;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    display: none;
+    padding: 10px;
+    border-radius: 4px;
+  }
+  #status.ok { display: block; background: var(--accent-light); color: var(--accent); }
+  #status.err { display: block; background: #fbeceb; color: var(--danger); }
+
+  #sheet-preview {
+    margin-top: 32px;
+    font-family: Arial, sans-serif;
+  }
+  #sheet-preview h2 { font-size: 14px; font-family: Arial, sans-serif; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { border: 1px solid var(--border); padding: 6px 8px; text-align: left; }
+  th { background: #f2f2ee; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>Subscribe to your portfolio newsletter</h1>
+  <div class="sub">Build your watchlist, we'll send the news that matters to it.</div>
+
+  <label for="name">Name</label>
+  <input type="text" id="name" placeholder="Jane Smith">
+
+  <label for="email">Email</label>
+  <input type="email" id="email" placeholder="jane@email.com">
+
+  <label for="ticker-search">Add stocks to your portfolio</label>
+  <input type="text" id="ticker-search" placeholder="Search by ticker or company name (e.g. AAPL)" autocomplete="off">
+  <div id="ticker-results"></div>
+
+  <div id="portfolio"></div>
+
+  <div class="agree">
+    <input type="checkbox" id="agree-check">
+    <label for="agree-check" style="margin:0; font-weight:normal;">
+      I understand this newsletter is for educational purposes only and is not financial advice.
+    </label>
+  </div>
+
+  <button class="submit" id="submit-btn" disabled>Subscribe</button>
+  <div id="status"></div>
+</div>
+
+<div class="card" id="sheet-preview">
+  <h2>Subscriber sheet (simulated — this is where your backend/spreadsheet would live)</h2>
+  <table>
+    <thead>
+      <tr><th>Name</th><th>Email</th><th>Portfolio</th><th>Status</th></tr>
+    </thead>
+    <tbody id="sheet-body">
+      <tr><td colspan="4" style="color:#999;">No subscribers yet</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+// --- Mock ticker database. Swap this for a real API (e.g. Finnhub, Alpha Vantage, IEX) later. ---
+const TICKERS = [
+  { symbol: 'AAPL', name: 'Apple Inc.' },
+  { symbol: 'MSFT', name: 'Microsoft Corp.' },
+  { symbol: 'GOOGL', name: 'Alphabet Inc.' },
+  { symbol: 'AMZN', name: 'Amazon.com Inc.' },
+  { symbol: 'TSLA', name: 'Tesla Inc.' },
+  { symbol: 'NVDA', name: 'NVIDIA Corp.' },
+  { symbol: 'META', name: 'Meta Platforms Inc.' },
+  { symbol: 'NFLX', name: 'Netflix Inc.' },
+  { symbol: 'DIS', name: 'Walt Disney Co.' },
+  { symbol: 'SPACEX', name: 'SpaceX (private)' },
+  { symbol: 'IBM', name: 'IBM Corp.' },
+  { symbol: 'AMD', name: 'Advanced Micro Devices' },
+];
+
+let portfolio = []; // list of { symbol, name }
+let subscribers = []; // simulated spreadsheet rows
+
+const searchInput = document.getElementById('ticker-search');
+const resultsBox = document.getElementById('ticker-results');
+const portfolioBox = document.getElementById('portfolio');
+const nameInput = document.getElementById('name');
+const emailInput = document.getElementById('email');
+const agreeCheck = document.getElementById('agree-check');
+const submitBtn = document.getElementById('submit-btn');
+const statusBox = document.getElementById('status');
+const sheetBody = document.getElementById('sheet-body');
+
+// --- Ticker search ---
+searchInput.addEventListener('input', () => {
+  const q = searchInput.value.trim().toLowerCase();
+  if (!q) { resultsBox.style.display = 'none'; return; }
+
+  const matches = TICKERS.filter(t =>
+    (t.symbol.toLowerCase().includes(q) || t.name.toLowerCase().includes(q)) &&
+    !portfolio.some(p => p.symbol === t.symbol)
+  ).slice(0, 6);
+
+  if (matches.length === 0) {
+    resultsBox.style.display = 'none';
+    return;
+  }
+
+  resultsBox.innerHTML = matches.map(t =>
+    `<div class="result-row" data-symbol="${t.symbol}">
+       <span class="sym">${t.symbol}</span><span class="name">${t.name}</span>
+     </div>`
+  ).join('');
+  resultsBox.style.display = 'block';
+});
+
+resultsBox.addEventListener('click', (e) => {
+  const row = e.target.closest('.result-row');
+  if (!row) return;
+  const symbol = row.dataset.symbol;
+  const stock = TICKERS.find(t => t.symbol === symbol);
+  if (stock) {
+    portfolio.push(stock);
+    renderPortfolio();
+  }
+  searchInput.value = '';
+  resultsBox.style.display = 'none';
+  validateForm();
+});
+
+function renderPortfolio() {
+  if (portfolio.length === 0) {
+    portfolioBox.innerHTML = '<div class="empty-note">No stocks added yet — search above to build your portfolio.</div>';
+    return;
+  }
+  portfolioBox.innerHTML = portfolio.map(s =>
+    `<div class="stock-chip">
+       <span><strong>${s.symbol}</strong> — ${s.name}</span>
+       <button data-symbol="${s.symbol}" aria-label="Remove ${s.symbol}">&times;</button>
+     </div>`
+  ).join('');
+}
+renderPortfolio();
+
+portfolioBox.addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  portfolio = portfolio.filter(s => s.symbol !== btn.dataset.symbol);
+  renderPortfolio();
+  validateForm();
+});
+
+// --- Form validation ---
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function validateForm() {
+  const ok = nameInput.value.trim().length > 0 &&
+             isValidEmail(emailInput.value.trim()) &&
+             portfolio.length > 0 &&
+             agreeCheck.checked;
+  submitBtn.disabled = !ok;
+}
+
+[nameInput, emailInput].forEach(el => el.addEventListener('input', validateForm));
+agreeCheck.addEventListener('change', validateForm);
+
+// --- Submit (simulated "add to spreadsheet") ---
+submitBtn.addEventListener('click', () => {
+  const name = nameInput.value.trim();
+  const email = emailInput.value.trim();
+
+  // In production: replace this block with a POST to your backend
+  // (e.g. a Google Apps Script Web App endpoint, or a Sheets API call)
+  // that appends a row to the subscriber spreadsheet.
+  const record = {
+    name,
+    email,
+    portfolio: portfolio.map(s => s.symbol).join(', '),
+    status: 'active'
+  };
+  subscribers.push(record);
+  renderSheet();
+
+  statusBox.className = 'ok';
+  statusBox.textContent = `Subscribed! ${email} will start receiving updates on ${record.portfolio}.`;
+
+  // reset form
+  nameInput.value = '';
+  emailInput.value = '';
+  agreeCheck.checked = false;
+  portfolio = [];
+  renderPortfolio();
+  validateForm();
+});
+
+function renderSheet() {
+  if (subscribers.length === 0) {
+    sheetBody.innerHTML = '<tr><td colspan="4" style="color:#999;">No subscribers yet</td></tr>';
+    return;
+  }
+  sheetBody.innerHTML = subscribers.map(s =>
+    `<tr><td>${s.name}</td><td>${s.email}</td><td>${s.portfolio}</td><td>${s.status}</td></tr>`
+  ).join('');
+}
+</script>
+
+</body>
+</html>

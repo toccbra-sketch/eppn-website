@@ -232,7 +232,6 @@
 const API_BASE = 'https://eppn-backend.onrender.com';
 
 let portfolio = []; // list of { symbol, name }
-let subscribers = []; // simulated spreadsheet rows (visual preview only)
 
 const searchInput = document.getElementById('ticker-search');
 const resultsBox = document.getElementById('ticker-results');
@@ -242,7 +241,6 @@ const emailInput = document.getElementById('email');
 const agreeCheck = document.getElementById('agree-check');
 const submitBtn = document.getElementById('submit-btn');
 const statusBox = document.getElementById('status');
-const sheetBody = document.getElementById('sheet-body');
 
 // --- Ticker search (live, via backend) ---
 let searchTimeout = null;
@@ -347,11 +345,7 @@ function validateForm() {
 [nameInput, emailInput].forEach(el => el.addEventListener('input', validateForm));
 agreeCheck.addEventListener('change', validateForm);
 
-// --- Submit: POST to your Make.com webhook, which appends a row in Google Sheets ---
-
-// PASTE YOUR MAKE.COM WEBHOOK URL HERE:
-const WEBHOOK_URL = 'https://hook.us1.make.com/YOUR_WEBHOOK_ID_HERE';
-
+// --- Submit: POST to your Render backend, which appends a row in Google Sheets ---
 submitBtn.addEventListener('click', async () => {
   const name = nameInput.value.trim();
   const email = emailInput.value.trim();
@@ -367,17 +361,13 @@ submitBtn.addEventListener('click', async () => {
   submitBtn.textContent = 'Subscribing...';
 
   try {
-    const response = await fetch(WEBHOOK_URL, {
+    const response = await fetch(`${API_BASE}/subscribe`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(record)
     });
 
-    if (!response.ok) throw new Error('Webhook responded with an error');
-
-    // Keep a local copy for the on-page preview table (purely visual, not the source of truth)
-    subscribers.push(record);
-    renderSheet();
+    if (!response.ok) throw new Error('Backend responded with an error');
 
     statusBox.className = 'ok';
     statusBox.textContent = `Subscribed! ${email} will start receiving updates on ${record.portfolio}.`;
@@ -398,16 +388,6 @@ submitBtn.addEventListener('click', async () => {
     validateForm();
   }
 });
-
-function renderSheet() {
-  if (subscribers.length === 0) {
-    sheetBody.innerHTML = '<tr><td colspan="4" style="color:#999;">No subscribers yet</td></tr>';
-    return;
-  }
-  sheetBody.innerHTML = subscribers.map(s =>
-    `<tr><td>${s.name}</td><td>${s.email}</td><td>${s.portfolio}</td><td>${s.status}</td></tr>`
-  ).join('');
-}
 </script>
 
 </body>

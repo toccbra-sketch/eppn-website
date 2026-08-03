@@ -201,24 +201,11 @@
 </div>
 
 <script>
-// --- Mock ticker database. Swap this for a real API (e.g. Finnhub, Alpha Vantage, IEX) later. ---
-const TICKERS = [
-  { symbol: 'AAPL', name: 'Apple Inc.' },
-  { symbol: 'MSFT', name: 'Microsoft Corp.' },
-  { symbol: 'GOOGL', name: 'Alphabet Inc.' },
-  { symbol: 'AMZN', name: 'Amazon.com Inc.' },
-  { symbol: 'TSLA', name: 'Tesla Inc.' },
-  { symbol: 'NVDA', name: 'NVIDIA Corp.' },
-  { symbol: 'META', name: 'Meta Platforms Inc.' },
-  { symbol: 'NFLX', name: 'Netflix Inc.' },
-  { symbol: 'DIS', name: 'Walt Disney Co.' },
-  { symbol: 'SPACEX', name: 'SpaceX (private)' },
-  { symbol: 'IBM', name: 'IBM Corp.' },
-  { symbol: 'AMD', name: 'Advanced Micro Devices' },
-];
+// Point this at your Render backend
+const API_BASE = 'https://eppn-backend.onrender.com';
 
 let portfolio = []; // list of { symbol, name }
-let subscribers = []; // simulated spreadsheet rows
+let subscribers = []; // simulated spreadsheet rows (visual preview only)
 
 const searchInput = document.getElementById('ticker-search');
 const resultsBox = document.getElementById('ticker-results');
@@ -230,36 +217,64 @@ const submitBtn = document.getElementById('submit-btn');
 const statusBox = document.getElementById('status');
 const sheetBody = document.getElementById('sheet-body');
 
-// --- Ticker search ---
+// --- Ticker search (live, via backend) ---
+let searchTimeout = null;
+let searchRequestId = 0;
+
 searchInput.addEventListener('input', () => {
-  const q = searchInput.value.trim().toLowerCase();
-  if (!q) { resultsBox.style.display = 'none'; return; }
+  const q = searchInput.value.trim();
+  clearTimeout(searchTimeout);
 
-  const matches = TICKERS.filter(t =>
-    (t.symbol.toLowerCase().includes(q) || t.name.toLowerCase().includes(q)) &&
-    !portfolio.some(p => p.symbol === t.symbol)
-  ).slice(0, 6);
-
-  if (matches.length === 0) {
+  if (!q) {
     resultsBox.style.display = 'none';
     return;
   }
 
-  resultsBox.innerHTML = matches.map(t =>
-    `<div class="result-row" data-symbol="${t.symbol}">
-       <span class="sym">${t.symbol}</span><span class="name">${t.name}</span>
-     </div>`
-  ).join('');
-  resultsBox.style.display = 'block';
+  // Debounce: wait 300ms after typing stops before calling the API,
+  // so we're not firing a request on every keystroke.
+  searchTimeout = setTimeout(() => runTickerSearch(q), 300);
 });
+
+async function runTickerSearch(query) {
+  const thisRequestId = ++searchRequestId;
+  resultsBox.innerHTML = `<div class="result-row" style="color:#999;">Searching...</div>`;
+  resultsBox.style.display = 'block';
+
+  try {
+    const res = await fetch(`${API_BASE}/search-tickers?q=${encodeURIComponent(query)}`);
+    const data = await res.json();
+
+    // Ignore stale responses if the user kept typing
+    if (thisRequestId !== searchRequestId) return;
+
+    const matches = (data.results || []).filter(
+      t => !portfolio.some(p => p.symbol === t.symbol)
+    );
+
+    if (matches.length === 0) {
+      resultsBox.innerHTML = `<div class="result-row" style="color:#999;">No matches found</div>`;
+      return;
+    }
+
+    resultsBox.innerHTML = matches.map(t =>
+      `<div class="result-row" data-symbol="${t.symbol}" data-name="${(t.name || '').replace(/"/g, '&quot;')}">
+         <span class="sym">${t.symbol}</span><span class="name">${t.name || ''}</span>
+       </div>`
+    ).join('');
+  } catch (err) {
+    if (thisRequestId !== searchRequestId) return;
+    resultsBox.innerHTML = `<div class="result-row" style="color:#a13d2e;">Search unavailable — try again</div>`;
+    console.error(err);
+  }
+}
 
 resultsBox.addEventListener('click', (e) => {
   const row = e.target.closest('.result-row');
-  if (!row) return;
+  if (!row || !row.dataset.symbol) return;
   const symbol = row.dataset.symbol;
-  const stock = TICKERS.find(t => t.symbol === symbol);
-  if (stock) {
-    portfolio.push(stock);
+  const name = row.dataset.name || '';
+  if (!portfolio.some(p => p.symbol === symbol)) {
+    portfolio.push({ symbol, name });
     renderPortfolio();
   }
   searchInput.value = '';
@@ -308,7 +323,7 @@ agreeCheck.addEventListener('change', validateForm);
 // --- Submit: POST to your Make.com webhook, which appends a row in Google Sheets ---
 
 // PASTE YOUR MAKE.COM WEBHOOK URL HERE:
-const WEBHOOK_URL = 'https://eppn-backend.onrender.com/subscribe';
+const WEBHOOK_URL = 'https://hook.us1.make.com/YOUR_WEBHOOK_ID_HERE';
 
 submitBtn.addEventListener('click', async () => {
   const name = nameInput.value.trim();

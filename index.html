@@ -120,6 +120,21 @@
   }
   .agree input { margin-top: 3px; }
 
+  .footer-disclaimers {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-family: Arial, sans-serif;
+  }
+  .footer-disclaimers p {
+    font-size: 11px;
+    color: #888;
+    line-height: 1.5;
+    margin: 0 0 10px;
+  }
+  .footer-disclaimers p:last-child { margin-bottom: 0; }
+  .footer-disclaimers strong { color: #666; }
+
   button.submit {
     width: 100%;
     margin-top: 20px;
@@ -186,18 +201,30 @@
 
   <button class="submit" id="submit-btn" disabled>Subscribe</button>
   <div id="status"></div>
-</div>
 
-<div class="card" id="sheet-preview">
-  <h2>Subscriber sheet (simulated — this is where your backend/spreadsheet would live)</h2>
-  <table>
-    <thead>
-      <tr><th>Name</th><th>Email</th><th>Portfolio</th><th>Status</th></tr>
-    </thead>
-    <tbody id="sheet-body">
-      <tr><td colspan="4" style="color:#999;">No subscribers yet</td></tr>
-    </tbody>
-  </table>
+  <div class="footer-disclaimers">
+    <p>
+      <strong>AI-generated content.</strong> Newsletter write-ups are created using AI and may contain
+      mistakes or inaccuracies. Always verify important details yourself before making any decisions
+      about your portfolio.
+    </p>
+    <p>
+      <strong>Data accuracy.</strong> Price and market data is provided by third-party sources and may
+      be delayed, incomplete, or occasionally inaccurate.
+    </p>
+    <p>
+      <strong>Past performance.</strong> Historical patterns referenced in this newsletter are not
+      indicative of future results.
+    </p>
+    <p>
+      <strong>No advisory relationship.</strong> EPPN is not a registered investment advisor and does
+      not act in a fiduciary capacity for subscribers.
+    </p>
+    <p style="color:#999;">
+      [Your business mailing address here — required for CAN-SPAM compliance once you're sending
+      commercial email]
+    </p>
+  </div>
 </div>
 
 <script>

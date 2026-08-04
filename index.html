@@ -220,6 +220,11 @@
       <strong>No advisory relationship.</strong> EPPN is not a registered investment advisor and does
       not act in a fiduciary capacity for subscribers.
     </p>
+    <p>
+      Can't find a ticker, or does something look off — missing news, an unclear price, or
+      anything else that doesn't seem right? Email us at
+      <a href="mailto:YOUR_EMAIL_HERE@example.com">YOUR_EMAIL_HERE@example.com</a> and we'll look into adding it.
+    </p>
     <p style="color:#999;">
       [Your business mailing address here — required for CAN-SPAM compliance once you're sending
       commercial email]
@@ -281,7 +286,11 @@ async function runTickerSearch(query) {
       return;
     }
 
-    resultsBox.innerHTML = matches.map(t =>
+    const fallbackNotice = data.fallback
+      ? `<div class="result-row" style="color:#a13d2e; cursor:default;">Live search is temporarily down — showing common tickers only</div>`
+      : '';
+
+    resultsBox.innerHTML = fallbackNotice + matches.map(t =>
       `<div class="result-row" data-symbol="${t.symbol}" data-name="${(t.name || '').replace(/"/g, '&quot;')}">
          <span class="sym">${t.symbol}</span><span class="name">${t.name || ''}</span>
        </div>`

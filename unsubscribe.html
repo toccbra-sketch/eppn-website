@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unsubscribe — The Portfolio Briefcase</title>
+<link rel="stylesheet" href="eppn-common.css">
+<style>
+  h1 { font-size: 22px; margin: 0 0 4px; color: var(--navy-900); }
+  .sub { font-family: Arial, sans-serif; font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+  .step-actions { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+</style>
+</head>
+<body data-page="unsubscribe">
+
+<div id="eppn-nav-root"></div>
+
+<div class="eppn-page">
+  <div class="eppn-container">
+    <div class="eppn-card" id="page-content">
+      <p class="eppn-spinner-note">Loading…</p>
+    </div>
+  </div>
+</div>
+
+<script src="eppn-common.js"></script>
+<script>
+const content = document.getElementById('page-content');
+let currentEmail = '';
+
+function renderConfirm() {
+  content.innerHTML = `
+    <h1>Unsubscribe</h1>
+    <div class="sub">
+      This will stop daily newsletter emails to <strong>${currentEmail}</strong>.
+      Your portfolio stays saved — you can pick up right where you left off if you subscribe again later.
+    </div>
+    <div class="step-actions">
+      <button class="eppn-btn" id="confirm-btn" style="background: var(--danger);">Confirm unsubscribe</button>
+      <a href="index.html" class="eppn-btn eppn-btn-secondary">Never mind, take me home</a>
+    </div>
+    <div class="eppn-status" id="status"></div>
+  `;
+
+  document.getElementById('confirm-btn').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    const statusBox = document.getElementById('status');
+    btn.disabled = true;
+    btn.textContent = 'Unsubscribing…';
+
+    try {
+      const res = await fetch(`${EPPN.API_BASE}/unsubscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: currentEmail })
+      });
+      if (!res.ok) throw new Error('Unsubscribe failed');
+
+      EPPN.logout();
+      content.innerHTML = `
+        <h1>You're unsubscribed</h1>
+        <div class="sub">${currentEmail} won't receive any more newsletter emails.</div>
+        <a href="index.html" class="eppn-btn">Back to home</a>
+      `;
+    } catch (err) {
+      statusBox.className = 'eppn-status err';
+      statusBox.textContent = 'Something went wrong. Please try again.';
+      console.error(err);
+      btn.disabled = false;
+      btn.textContent = 'Confirm unsubscribe';
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (!EPPN.requireLogin('unsubscribe.html')) return;
+  currentEmail = EPPN.getEmail();
+  renderConfirm();
+});
+</script>
+
+</body>
+</html>

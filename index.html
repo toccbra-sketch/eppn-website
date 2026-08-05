@@ -2,401 +2,168 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>EPPN — Subscribe</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Portfolio Briefcase</title>
+<link rel="stylesheet" href="eppn-common.css">
 <style>
-  :root {
-    --ink: #1a1f26;
-    --paper: #fafaf8;
-    --accent: #2f5d50;
-    --accent-light: #e8f0ed;
-    --border: #d8d8d2;
-    --danger: #a13d2e;
+  /* Landing (logged out) */
+  .hero {
+    text-align: center;
+    padding: 60px 16px 20px;
   }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    background: var(--paper);
-    color: var(--ink);
-    font-family: Georgia, 'Times New Roman', serif;
-    display: flex;
-    justify-content: center;
-    padding: 40px 16px;
+  .hero h1 {
+    font-size: 34px;
+    margin: 0 0 10px;
+    color: var(--navy-900);
   }
-  .card {
-    width: 100%;
-    max-width: 560px;
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 32px;
-  }
-  h1 {
-    font-size: 24px;
-    margin: 0 0 4px;
-  }
-  .sub {
+  .hero .slogan {
     font-family: Arial, sans-serif;
-    font-size: 13px;
-    color: #666;
-    margin-bottom: 24px;
+    font-size: 16px;
+    color: var(--muted);
+    margin-bottom: 36px;
   }
-  label {
+  .hero .eppn-btn { max-width: 280px; margin: 0 auto; display: block; }
+  .hero .login-hint {
     display: block;
-    font-family: Arial, sans-serif;
-    font-size: 13px;
-    font-weight: bold;
-    margin: 16px 0 4px;
-  }
-  input[type=text], input[type=email] {
-    width: 100%;
-    padding: 9px 10px;
-    border: 1px solid var(--border);
-    border-radius: 4px;
+    margin-top: 18px;
     font-family: Arial, sans-serif;
     font-size: 14px;
   }
-  input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 
-  #ticker-results {
-    border: 1px solid var(--border);
-    border-top: none;
-    border-radius: 0 0 4px 4px;
-    max-height: 160px;
-    overflow-y: auto;
-    display: none;
-  }
-  .result-row {
-    padding: 8px 10px;
+  /* Dashboard (logged in) */
+  .dash-header {
     font-family: Arial, sans-serif;
     font-size: 13px;
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
+    color: var(--muted);
+    margin-bottom: 2px;
   }
-  .result-row:hover { background: var(--accent-light); }
-  .result-row .sym { font-weight: bold; }
-  .result-row .name { color: #777; }
+  .dash-name { margin: 0 0 22px; color: var(--navy-900); }
 
-  #portfolio {
-    margin-top: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  .stock-chip {
+  .holding-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: var(--accent-light);
+    padding: 12px 14px;
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 8px 10px;
+    border-radius: 5px;
+    margin-bottom: 8px;
+    font-family: Arial, sans-serif;
+  }
+  .holding-ticker { font-weight: bold; color: var(--navy-900); font-size: 14px; }
+  .holding-price { text-align: right; }
+  .holding-price .price { font-size: 14px; font-weight: bold; }
+  .holding-price .change { font-size: 12px; }
+  .change.up { color: var(--up); }
+  .change.down { color: var(--down); }
+  .change.unknown { color: var(--muted); }
+
+  .empty-portfolio {
     font-family: Arial, sans-serif;
     font-size: 13px;
+    color: var(--muted);
+    padding: 14px 0;
   }
-  .stock-chip button {
-    background: none;
-    border: none;
-    color: var(--danger);
-    font-size: 15px;
-    cursor: pointer;
-    line-height: 1;
-  }
-  .empty-note {
-    font-family: Arial, sans-serif;
-    font-size: 12px;
-    color: #999;
-    padding: 6px 0;
-  }
-
-  .agree {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    margin-top: 20px;
-    font-family: Arial, sans-serif;
-    font-size: 12px;
-    color: #555;
-  }
-  .agree input { margin-top: 3px; }
-
-  .footer-disclaimers {
-    margin-top: 20px;
-    padding-top: 16px;
-    border-top: 1px solid var(--border);
-    font-family: Arial, sans-serif;
-  }
-  .footer-disclaimers p {
-    font-size: 11px;
-    color: #888;
-    line-height: 1.5;
-    margin: 0 0 10px;
-  }
-  .footer-disclaimers p:last-child { margin-bottom: 0; }
-  .footer-disclaimers strong { color: #666; }
-
-  button.submit {
-    width: 100%;
-    margin-top: 20px;
-    padding: 12px;
-    background: var(--accent);
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    font-family: Arial, sans-serif;
-    font-size: 15px;
-    font-weight: bold;
-    cursor: pointer;
-  }
-  button.submit:disabled {
-    background: #b7b7b1;
-    cursor: not-allowed;
-  }
-
-  #status {
-    margin-top: 14px;
-    font-family: Arial, sans-serif;
-    font-size: 13px;
-    display: none;
-    padding: 10px;
-    border-radius: 4px;
-  }
-  #status.ok { display: block; background: var(--accent-light); color: var(--accent); }
-  #status.err { display: block; background: #fbeceb; color: var(--danger); }
-
-  #sheet-preview {
-    margin-top: 32px;
-    font-family: Arial, sans-serif;
-  }
-  #sheet-preview h2 { font-size: 14px; font-family: Arial, sans-serif; }
-  table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  th, td { border: 1px solid var(--border); padding: 6px 8px; text-align: left; }
-  th { background: #f2f2ee; }
 </style>
 </head>
-<body>
+<body data-page="home">
 
-<div class="card">
-  <h1>Subscribe to your portfolio newsletter</h1>
-  <div class="sub">Build your watchlist, we'll send the news that matters to it.</div>
+<div id="eppn-nav-root"></div>
 
-  <label for="name">Name</label>
-  <input type="text" id="name" placeholder="Jane Smith">
-
-  <label for="email">Email</label>
-  <input type="email" id="email" placeholder="jane@email.com">
-
-  <label for="ticker-search">Add stocks to your portfolio</label>
-  <input type="text" id="ticker-search" placeholder="Search by ticker or company name (e.g. AAPL)" autocomplete="off">
-  <div id="ticker-results"></div>
-
-  <div id="portfolio"></div>
-
-  <div class="agree">
-    <input type="checkbox" id="agree-check">
-    <label for="agree-check" style="margin:0; font-weight:normal;">
-      I understand this newsletter is for educational purposes only and is not financial advice.
-    </label>
-  </div>
-
-  <button class="submit" id="submit-btn" disabled>Subscribe</button>
-  <div id="status"></div>
-
-  <div class="footer-disclaimers">
-    <p>
-      <strong>AI-generated content.</strong> Newsletter write-ups are created using AI and may contain
-      mistakes or inaccuracies. Always verify important details yourself before making any decisions
-      about your portfolio.
-    </p>
-    <p>
-      <strong>Data accuracy.</strong> Price and market data is provided by third-party sources and may
-      be delayed, incomplete, or occasionally inaccurate.
-    </p>
-    <p>
-      <strong>Past performance.</strong> Historical patterns referenced in this newsletter are not
-      indicative of future results.
-    </p>
-    <p>
-      <strong>No advisory relationship.</strong> EPPN is not a registered investment advisor and does
-      not act in a fiduciary capacity for subscribers.
-    </p>
-    <p>
-      Can't find a ticker, or does something look off — missing news, an unclear price, or
-      anything else that doesn't seem right? Email us at
-      <a href="mailto:YOUR_EMAIL_HERE@example.com">YOUR_EMAIL_HERE@example.com</a> and we'll look into adding it.
-    </p>
-    <p style="color:#999;">
-      [Your business mailing address here — required for CAN-SPAM compliance once you're sending
-      commercial email]
-    </p>
+<div class="eppn-page">
+  <div class="eppn-container" id="page-content">
+    <!-- filled in by script below -->
+    <p class="eppn-spinner-note" style="text-align:center; padding-top:40px;">Loading…</p>
   </div>
 </div>
 
+<script src="eppn-common.js"></script>
 <script>
-// Point this at your Render backend
-const API_BASE = 'https://eppn-backend.onrender.com';
+async function renderPage() {
+  const content = document.getElementById('page-content');
 
-let portfolio = []; // list of { symbol, name }
-
-const searchInput = document.getElementById('ticker-search');
-const resultsBox = document.getElementById('ticker-results');
-const portfolioBox = document.getElementById('portfolio');
-const nameInput = document.getElementById('name');
-const emailInput = document.getElementById('email');
-const agreeCheck = document.getElementById('agree-check');
-const submitBtn = document.getElementById('submit-btn');
-const statusBox = document.getElementById('status');
-
-// --- Ticker search (live, via backend) ---
-let searchTimeout = null;
-let searchRequestId = 0;
-
-searchInput.addEventListener('input', () => {
-  const q = searchInput.value.trim();
-  clearTimeout(searchTimeout);
-
-  if (!q) {
-    resultsBox.style.display = 'none';
+  if (!EPPN.isLoggedIn()) {
+    content.innerHTML = `
+      <div class="hero">
+        <h1>The Portfolio Briefcase</h1>
+        <div class="slogan">Your Portfolio. Your News. Every Morning.</div>
+        <a href="subscribe.html" class="eppn-btn">Subscribe</a>
+        <a href="login.html" class="login-hint">Log in</a>
+      </div>
+    `;
     return;
   }
 
-  // Debounce: wait 300ms after typing stops before calling the API,
-  // so we're not firing a request on every keystroke.
-  searchTimeout = setTimeout(() => runTickerSearch(q), 300);
-});
-
-async function runTickerSearch(query) {
-  const thisRequestId = ++searchRequestId;
-  resultsBox.innerHTML = `<div class="result-row" style="color:#999;">Searching...</div>`;
-  resultsBox.style.display = 'block';
+  const email = EPPN.getEmail();
 
   try {
-    const res = await fetch(`${API_BASE}/search-tickers?q=${encodeURIComponent(query)}`);
-    const data = await res.json();
+    const [portfolioRes, quotesRes] = await Promise.all([
+      fetch(`${EPPN.API_BASE}/get-portfolio?email=${encodeURIComponent(email)}`),
+      fetch(`${EPPN.API_BASE}/portfolio-quotes?email=${encodeURIComponent(email)}`)
+    ]);
 
-    // Ignore stale responses if the user kept typing
-    if (thisRequestId !== searchRequestId) return;
+    if (!portfolioRes.ok) throw new Error('Could not load subscriber record');
 
-    const matches = (data.results || []).filter(
-      t => !portfolio.some(p => p.symbol === t.symbol)
-    );
+    const portfolioData = await portfolioRes.json();
+    const quotesData = quotesRes.ok ? await quotesRes.json() : { quotes: [] };
+    const quoteMap = {};
+    (quotesData.quotes || []).forEach(q => { quoteMap[q.ticker] = q; });
 
-    if (matches.length === 0) {
-      resultsBox.innerHTML = `<div class="result-row" style="color:#999;">No matches found</div>`;
-      return;
+    const tickers = (portfolioData.portfolio || '')
+      .split(',')
+      .map(t => t.trim())
+      .filter(Boolean);
+
+    let holdingsHtml = '';
+    if (tickers.length === 0) {
+      holdingsHtml = `<div class="empty-portfolio">Your portfolio is empty — add some tickers to start getting news.</div>`;
+    } else {
+      holdingsHtml = tickers.map(ticker => {
+        const q = quoteMap[ticker];
+        const display = ticker.includes(':') ? ticker.split(':').pop() : ticker;
+        let priceHtml;
+        if (q && q.price != null) {
+          const dir = q.pct_change >= 0 ? 'up' : 'down';
+          const arrow = q.pct_change >= 0 ? '▲' : '▼';
+          priceHtml = `
+            <div class="price">$${q.price}</div>
+            <div class="change ${dir}">${arrow} ${Math.abs(q.pct_change)}%</div>
+          `;
+        } else {
+          priceHtml = `<div class="change unknown">price unavailable</div>`;
+        }
+        return `
+          <div class="holding-row">
+            <div class="holding-ticker">${display}</div>
+            <div class="holding-price">${priceHtml}</div>
+          </div>
+        `;
+      }).join('');
     }
 
-    const fallbackNotice = data.fallback
-      ? `<div class="result-row" style="color:#a13d2e; cursor:default;">Live search is temporarily down — showing common tickers only</div>`
-      : '';
+    content.innerHTML = `
+      <div class="dash-header">Welcome back</div>
+      <h1 class="dash-name">${portfolioData.name || 'Your portfolio'}</h1>
+      ${holdingsHtml}
+      <a href="edit-portfolio.html" class="eppn-btn" style="margin-top:18px;">Edit portfolio</a>
 
-    resultsBox.innerHTML = fallbackNotice + matches.map(t =>
-      `<div class="result-row" data-symbol="${t.symbol}" data-name="${(t.name || '').replace(/"/g, '&quot;')}">
-         <span class="sym">${t.symbol}</span><span class="name">${t.name || ''}</span>
-       </div>`
-    ).join('');
+      <div class="eppn-disclaimers">
+        <p><strong>Educational content only.</strong> This is general market information, not financial advice, and nothing here is a recommendation to buy, sell, or hold any investment.</p>
+        <p><strong>Third-party pricing.</strong> Prices and % changes shown here are pulled from a third-party data provider and may be delayed, incomplete, or occasionally inaccurate.</p>
+        <p><strong>No advisory relationship.</strong> The Portfolio Briefcase is not a registered investment advisor and does not act in a fiduciary capacity for subscribers.</p>
+      </div>
+    `;
   } catch (err) {
-    if (thisRequestId !== searchRequestId) return;
-    resultsBox.innerHTML = `<div class="result-row" style="color:#a13d2e;">Search unavailable — try again</div>`;
     console.error(err);
+    content.innerHTML = `
+      <div class="eppn-status err" style="display:block;">
+        We couldn't load your portfolio. Your session may be out of date —
+        try <a href="login.html">logging in</a> again.
+      </div>
+    `;
   }
 }
 
-resultsBox.addEventListener('click', (e) => {
-  const row = e.target.closest('.result-row');
-  if (!row || !row.dataset.symbol) return;
-  const symbol = row.dataset.symbol;
-  const name = row.dataset.name || '';
-  if (!portfolio.some(p => p.symbol === symbol)) {
-    portfolio.push({ symbol, name });
-    renderPortfolio();
-  }
-  searchInput.value = '';
-  resultsBox.style.display = 'none';
-  validateForm();
-});
-
-function renderPortfolio() {
-  if (portfolio.length === 0) {
-    portfolioBox.innerHTML = '<div class="empty-note">No stocks added yet — search above to build your portfolio.</div>';
-    return;
-  }
-  portfolioBox.innerHTML = portfolio.map(s =>
-    `<div class="stock-chip">
-       <span><strong>${s.symbol}</strong> — ${s.name}</span>
-       <button data-symbol="${s.symbol}" aria-label="Remove ${s.symbol}">&times;</button>
-     </div>`
-  ).join('');
-}
-renderPortfolio();
-
-portfolioBox.addEventListener('click', (e) => {
-  const btn = e.target.closest('button');
-  if (!btn) return;
-  portfolio = portfolio.filter(s => s.symbol !== btn.dataset.symbol);
-  renderPortfolio();
-  validateForm();
-});
-
-// --- Form validation ---
-function isValidEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
-function validateForm() {
-  const ok = nameInput.value.trim().length > 0 &&
-             isValidEmail(emailInput.value.trim()) &&
-             portfolio.length > 0 &&
-             agreeCheck.checked;
-  submitBtn.disabled = !ok;
-}
-
-[nameInput, emailInput].forEach(el => el.addEventListener('input', validateForm));
-agreeCheck.addEventListener('change', validateForm);
-
-// --- Submit: POST to your Render backend, which appends a row in Google Sheets ---
-submitBtn.addEventListener('click', async () => {
-  const name = nameInput.value.trim();
-  const email = emailInput.value.trim();
-
-  const record = {
-    name,
-    email,
-    portfolio: portfolio.map(s => s.symbol).join(', '),
-    status: 'active'
-  };
-
-  submitBtn.disabled = true;
-  submitBtn.textContent = 'Subscribing...';
-
-  try {
-    const response = await fetch(`${API_BASE}/subscribe`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(record)
-    });
-
-    if (!response.ok) throw new Error('Backend responded with an error');
-
-    statusBox.className = 'ok';
-    statusBox.textContent = `Subscribed! ${email} will start receiving updates on ${record.portfolio}.`;
-
-    // reset form
-    nameInput.value = '';
-    emailInput.value = '';
-    agreeCheck.checked = false;
-    portfolio = [];
-    renderPortfolio();
-
-  } catch (err) {
-    statusBox.className = 'err';
-    statusBox.textContent = 'Something went wrong submitting your subscription. Please try again.';
-    console.error(err);
-  } finally {
-    submitBtn.textContent = 'Subscribe';
-    validateForm();
-  }
-});
+document.addEventListener('DOMContentLoaded', renderPage);
 </script>
 
 </body>

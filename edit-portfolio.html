@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edit Portfolio — The Portfolio Briefcase</title>
+<link rel="stylesheet" href="eppn-common.css">
+<style>
+  h1 { font-size: 22px; margin: 0 0 4px; color: var(--navy-900); }
+  .sub { font-family: Arial, sans-serif; font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+
+  #ticker-results {
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    max-height: 160px;
+    overflow-y: auto;
+    display: none;
+  }
+  .result-row {
+    padding: 8px 10px;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+  }
+  .result-row:hover { background: #eef2f7; }
+  .result-row .sym { font-weight: bold; }
+  .result-row .name { color: #777; }
+
+  #portfolio {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .stock-chip {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #eef2f7;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+  }
+  .stock-chip button {
+    background: none;
+    border: none;
+    color: var(--danger);
+    font-size: 15px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .empty-note { font-family: Arial, sans-serif; font-size: 12px; color: #999; padding: 6px 0; }
+
+  button.submit { margin-top: 20px; }
+</style>
+</head>
+<body data-page="edit-portfolio">
+
+<div id="eppn-nav-root"></div>
+
+<div class="eppn-page">
+  <div class="eppn-container">
+    <div class="eppn-card" id="page-content">
+      <p class="eppn-spinner-note">Loading your portfolio…</p>
+    </div>
+  </div>
+</div>
+
+<script src="eppn-common.js"></script>
+<script>
+let portfolio = []; // list of { symbol, name }
+let currentEmail = '';
+
+const content = document.getElementById('page-content');
+
+function tickerChipHtml() {
+  if (portfolio.length === 0) {
+    return '<div class="empty-note">No stocks in your portfolio yet — search above to add some.</div>';
+  }
+  return portfolio.map(s =>
+    `<div class="stock-chip">
+       <span><strong>${s.symbol}</strong>${s.name ? ' — ' + s.name : ''}</span>
+       <button data-symbol="${s.symbol}" aria-label="Remove ${s.symbol}">&times;</button>
+     </div>`
+  ).join('');
+}
+
+function renderEditor(name) {
+  content.innerHTML = `
+    <h1>Edit portfolio</h1>
+    <div class="sub">Signed in as ${currentEmail}</div>
+
+    <label for="ticker-search">Add stocks</label>
+    <input type="text" id="ticker-search" placeholder="Search by ticker or company name (e.g. AAPL)" autocomplete="off">
+    <div id="ticker-results"></div>
+
+    <div id="portfolio">${tickerChipHtml()}</div>
+
+    <button class="eppn-btn submit" id="save-btn">Save changes</button>
+    <div class="eppn-status" id="status"></div>
+  `;
+
+  const searchInput = document.getElementById('ticker-search');
+  const resultsBox = document.getElementById('ticker-results');
+  const portfolioBox = document.getElementById('portfolio');
+  const saveBtn = document.getElementById('save-btn');
+  const statusBox = document.getElementById('status');
+
+  let searchTimeout = null;
+  let searchRequestId = 0;
+
+  searchInput.addEventListener('input', () => {
+    const q = searchInput.value.trim();
+    clearTimeout(searchTimeout);
+    if (!q) { resultsBox.style.display = 'none'; return; }
+    searchTimeout = setTimeout(() => runTickerSearch(q), 300);
+  });
+
+  async function runTickerSearch(query) {
+    const thisRequestId = ++searchRequestId;
+    resultsBox.innerHTML = `<div class="result-row" style="color:#999;">Searching...</div>`;
+    resultsBox.style.display = 'block';
+
+    try {
+      const res = await fetch(`${EPPN.API_BASE}/search-tickers?q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      if (thisRequestId !== searchRequestId) return;
+
+      const matches = (data.results || []).filter(t => !portfolio.some(p => p.symbol === t.symbol));
+      if (matches.length === 0) {
+        resultsBox.innerHTML = `<div class="result-row" style="color:#999;">No matches found</div>`;
+        return;
+      }
+
+      resultsBox.innerHTML = matches.map(t =>
+        `<div class="result-row" data-symbol="${t.symbol}" data-name="${(t.name || '').replace(/"/g, '&quot;')}">
+           <span class="sym">${t.symbol}</span><span class="name">${t.name || ''}</span>
+         </div>`
+      ).join('');
+    } catch (err) {
+      if (thisRequestId !== searchRequestId) return;
+      resultsBox.innerHTML = `<div class="result-row" style="color:#a13d2e;">Search unavailable — try again</div>`;
+      console.error(err);
+    }
+  }
+
+  resultsBox.addEventListener('click', (e) => {
+    const row = e.target.closest('.result-row');
+    if (!row || !row.dataset.symbol) return;
+    const symbol = row.dataset.symbol;
+    const name = row.dataset.name || '';
+    if (!portfolio.some(p => p.symbol === symbol)) {
+      portfolio.push({ symbol, name });
+      portfolioBox.innerHTML = tickerChipHtml();
+    }
+    searchInput.value = '';
+    resultsBox.style.display = 'none';
+  });
+
+  portfolioBox.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    portfolio = portfolio.filter(s => s.symbol !== btn.dataset.symbol);
+    portfolioBox.innerHTML = tickerChipHtml();
+  });
+
+  saveBtn.addEventListener('click', async () => {
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving…';
+    statusBox.className = 'eppn-status';
+
+    try {
+      const res = await fetch(`${EPPN.API_BASE}/update-portfolio`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: currentEmail,
+          portfolio: portfolio.map(s => s.symbol).join(', ')
+        })
+      });
+      if (!res.ok) throw new Error('Update failed');
+
+      statusBox.className = 'eppn-status ok';
+      statusBox.innerHTML = `Portfolio updated. <a href="index.html">Back to home</a>`;
+    } catch (err) {
+      statusBox.className = 'eppn-status err';
+      statusBox.textContent = 'Something went wrong saving your changes. Please try again.';
+      console.error(err);
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save changes';
+    }
+  });
+}
+
+async function init() {
+  if (!EPPN.requireLogin('edit-portfolio.html')) return;
+  currentEmail = EPPN.getEmail();
+
+  try {
+    const res = await fetch(`${EPPN.API_BASE}/get-portfolio?email=${encodeURIComponent(currentEmail)}`);
+    if (!res.ok) throw new Error('Could not load portfolio');
+    const data = await res.json();
+
+    portfolio = (data.portfolio || '')
+      .split(',')
+      .map(t => t.trim())
+      .filter(Boolean)
+      .map(symbol => ({ symbol, name: '' }));
+
+    renderEditor(data.name);
+  } catch (err) {
+    console.error(err);
+    content.innerHTML = `
+      <div class="eppn-status err" style="display:block;">
+        We couldn't load your portfolio. Try <a href="login.html">logging in</a> again.
+      </div>
+    `;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+
+</body>
+</html>

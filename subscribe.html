@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Subscribe — The Portfolio Briefcase</title>
+<link rel="stylesheet" href="eppn-common.css">
+<style>
+  h1 { font-size: 22px; margin: 0 0 4px; color: var(--navy-900); }
+  .sub { font-family: Arial, sans-serif; font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+
+  #ticker-results {
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    max-height: 160px;
+    overflow-y: auto;
+    display: none;
+  }
+  .result-row {
+    padding: 8px 10px;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+  }
+  .result-row:hover { background: #eef2f7; }
+  .result-row .sym { font-weight: bold; }
+  .result-row .name { color: #777; }
+
+  #portfolio {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .stock-chip {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #eef2f7;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+  }
+  .stock-chip button {
+    background: none;
+    border: none;
+    color: var(--danger);
+    font-size: 15px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .empty-note { font-family: Arial, sans-serif; font-size: 12px; color: #999; padding: 6px 0; }
+
+  .agree {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 20px;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    color: #555;
+  }
+  .agree input { margin-top: 3px; }
+
+  button.submit { margin-top: 20px; }
+</style>
+</head>
+<body data-page="subscribe">
+
+<div id="eppn-nav-root"></div>
+
+<div class="eppn-page">
+  <div class="eppn-container">
+    <div class="eppn-card">
+
+      <h1>Subscribe to your portfolio newsletter</h1>
+      <div class="sub">Build your watchlist — we'll send the news that matters to it, every morning.</div>
+
+      <label for="name">Name</label>
+      <input type="text" id="name" placeholder="Jane Smith">
+
+      <label for="email">Email</label>
+      <input type="email" id="email" placeholder="jane@email.com">
+
+      <label for="ticker-search">Add stocks to your portfolio</label>
+      <input type="text" id="ticker-search" placeholder="Search by ticker or company name (e.g. AAPL)" autocomplete="off">
+      <div id="ticker-results"></div>
+
+      <div id="portfolio"></div>
+
+      <div class="agree">
+        <input type="checkbox" id="agree-check">
+        <label for="agree-check" style="margin:0; font-weight:normal;">
+          I understand this newsletter is for educational purposes only and is not financial advice.
+        </label>
+      </div>
+
+      <button class="eppn-btn submit" id="submit-btn" disabled>Subscribe</button>
+      <div class="eppn-status" id="status"></div>
+
+      <div class="eppn-disclaimers">
+        <p><strong>AI-generated content.</strong> Newsletter write-ups are created using AI and may contain mistakes or inaccuracies. Always verify important details yourself before making any decisions about your portfolio.</p>
+        <p><strong>Data accuracy.</strong> Price and market data is provided by third-party sources and may be delayed, incomplete, or occasionally inaccurate.</p>
+        <p><strong>Past performance.</strong> Historical patterns referenced in this newsletter are not indicative of future results.</p>
+        <p><strong>No advisory relationship.</strong> The Portfolio Briefcase is not a registered investment advisor and does not act in a fiduciary capacity for subscribers.</p>
+        <p>Can't find a ticker, or does something look off — missing news, an unclear price, or anything else that doesn't seem right? Email us at <a href="mailto:YOUR_EMAIL_HERE@example.com">YOUR_EMAIL_HERE@example.com</a> and we'll look into adding it.</p>
+        <p style="color:#999;">[Your business mailing address here — required for CAN-SPAM compliance once you're sending commercial email]</p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="eppn-common.js"></script>
+<script>
+let portfolio = []; // list of { symbol, name }
+
+const searchInput = document.getElementById('ticker-search');
+const resultsBox = document.getElementById('ticker-results');
+const portfolioBox = document.getElementById('portfolio');
+const nameInput = document.getElementById('name');
+const emailInput = document.getElementById('email');
+const agreeCheck = document.getElementById('agree-check');
+const submitBtn = document.getElementById('submit-btn');
+const statusBox = document.getElementById('status');
+
+let searchTimeout = null;
+let searchRequestId = 0;
+
+searchInput.addEventListener('input', () => {
+  const q = searchInput.value.trim();
+  clearTimeout(searchTimeout);
+  if (!q) { resultsBox.style.display = 'none'; return; }
+  searchTimeout = setTimeout(() => runTickerSearch(q), 300);
+});
+
+async function runTickerSearch(query) {
+  const thisRequestId = ++searchRequestId;
+  resultsBox.innerHTML = `<div class="result-row" style="color:#999;">Searching...</div>`;
+  resultsBox.style.display = 'block';
+
+  try {
+    const res = await fetch(`${EPPN.API_BASE}/search-tickers?q=${encodeURIComponent(query)}`);
+    const data = await res.json();
+    if (thisRequestId !== searchRequestId) return;
+
+    const matches = (data.results || []).filter(t => !portfolio.some(p => p.symbol === t.symbol));
+
+    if (matches.length === 0) {
+      resultsBox.innerHTML = `<div class="result-row" style="color:#999;">No matches found</div>`;
+      return;
+    }
+
+    const fallbackNotice = data.fallback
+      ? `<div class="result-row" style="color:#a13d2e; cursor:default;">Live search is temporarily down — showing common tickers only</div>`
+      : '';
+
+    resultsBox.innerHTML = fallbackNotice + matches.map(t =>
+      `<div class="result-row" data-symbol="${t.symbol}" data-name="${(t.name || '').replace(/"/g, '&quot;')}">
+         <span class="sym">${t.symbol}</span><span class="name">${t.name || ''}</span>
+       </div>`
+    ).join('');
+  } catch (err) {
+    if (thisRequestId !== searchRequestId) return;
+    resultsBox.innerHTML = `<div class="result-row" style="color:#a13d2e;">Search unavailable — try again</div>`;
+    console.error(err);
+  }
+}
+
+resultsBox.addEventListener('click', (e) => {
+  const row = e.target.closest('.result-row');
+  if (!row || !row.dataset.symbol) return;
+  const symbol = row.dataset.symbol;
+  const name = row.dataset.name || '';
+  if (!portfolio.some(p => p.symbol === symbol)) {
+    portfolio.push({ symbol, name });
+    renderPortfolio();
+  }
+  searchInput.value = '';
+  resultsBox.style.display = 'none';
+  validateForm();
+});
+
+function renderPortfolio() {
+  if (portfolio.length === 0) {
+    portfolioBox.innerHTML = '<div class="empty-note">No stocks added yet — search above to build your portfolio.</div>';
+    return;
+  }
+  portfolioBox.innerHTML = portfolio.map(s =>
+    `<div class="stock-chip">
+       <span><strong>${s.symbol}</strong> — ${s.name}</span>
+       <button data-symbol="${s.symbol}" aria-label="Remove ${s.symbol}">&times;</button>
+     </div>`
+  ).join('');
+}
+renderPortfolio();
+
+portfolioBox.addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  portfolio = portfolio.filter(s => s.symbol !== btn.dataset.symbol);
+  renderPortfolio();
+  validateForm();
+});
+
+function isValidEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
+
+function validateForm() {
+  const ok = nameInput.value.trim().length > 0 &&
+             isValidEmail(emailInput.value.trim()) &&
+             portfolio.length > 0 &&
+             agreeCheck.checked;
+  submitBtn.disabled = !ok;
+}
+
+[nameInput, emailInput].forEach(el => el.addEventListener('input', validateForm));
+agreeCheck.addEventListener('change', validateForm);
+
+submitBtn.addEventListener('click', async () => {
+  const name = nameInput.value.trim();
+  const email = emailInput.value.trim();
+
+  const record = {
+    name,
+    email,
+    portfolio: portfolio.map(s => s.symbol).join(', '),
+    status: 'active'
+  };
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Subscribing...';
+
+  try {
+    const response = await fetch(`${EPPN.API_BASE}/subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(record)
+    });
+
+    if (!response.ok) throw new Error('Backend responded with an error');
+
+    statusBox.className = 'eppn-status ok';
+    statusBox.innerHTML = `Subscribed! ${email} will start receiving updates on ${record.portfolio}. <a href="login.html">Log in</a> any time to view or edit it.`;
+
+    nameInput.value = '';
+    emailInput.value = '';
+    agreeCheck.checked = false;
+    portfolio = [];
+    renderPortfolio();
+
+  } catch (err) {
+    statusBox.className = 'eppn-status err';
+    statusBox.textContent = 'Something went wrong submitting your subscription. Please try again.';
+    console.error(err);
+  } finally {
+    submitBtn.textContent = 'Subscribe';
+    validateForm();
+  }
+});
+</script>
+
+</body>
+</html>

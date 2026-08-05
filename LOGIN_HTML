@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Log in — The Portfolio Briefcase</title>
+<link rel="stylesheet" href="eppn-common.css">
+<style>
+  h1 { font-size: 22px; margin: 0 0 4px; color: var(--navy-900); }
+  .sub { font-family: Arial, sans-serif; font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+  .code-input {
+    letter-spacing: 6px;
+    font-size: 20px;
+    text-align: center;
+  }
+  .step-actions { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+  .eppn-btn-secondary { margin-top: 4px; }
+</style>
+</head>
+<body data-page="login">
+
+<div id="eppn-nav-root"></div>
+
+<div class="eppn-page">
+  <div class="eppn-container">
+    <div class="eppn-card">
+
+      <div id="step-email">
+        <h1>Log in</h1>
+        <div class="sub">We'll email you a one-time code — no passwords to remember.</div>
+
+        <label for="email">Email</label>
+        <input type="email" id="email" placeholder="jane@email.com">
+
+        <div class="step-actions">
+          <button class="eppn-btn" id="send-code-btn">Send login code</button>
+        </div>
+        <div class="eppn-status" id="email-status"></div>
+      </div>
+
+      <div id="step-code" style="display:none;">
+        <h1>Enter your code</h1>
+        <div class="sub" id="code-sub"></div>
+
+        <label for="code">6-digit code</label>
+        <input type="text" id="code" class="code-input" placeholder="------" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
+
+        <div class="step-actions">
+          <button class="eppn-btn" id="verify-btn">Verify &amp; log in</button>
+          <button class="eppn-btn-secondary eppn-btn" id="resend-btn">Resend code</button>
+          <button class="eppn-link-btn" id="change-email-btn">Use a different email</button>
+        </div>
+        <div class="eppn-status" id="code-status"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="eppn-common.js"></script>
+<script>
+const stepEmail = document.getElementById('step-email');
+const stepCode = document.getElementById('step-code');
+const emailInput = document.getElementById('email');
+const codeInput = document.getElementById('code');
+const emailStatus = document.getElementById('email-status');
+const codeStatus = document.getElementById('code-status');
+const codeSub = document.getElementById('code-sub');
+const sendBtn = document.getElementById('send-code-btn');
+const verifyBtn = document.getElementById('verify-btn');
+const resendBtn = document.getElementById('resend-btn');
+
+let currentEmail = '';
+
+function getNextPage() {
+  const params = new URLSearchParams(location.search);
+  return params.get('next') || 'index.html';
+}
+
+async function requestCode(email) {
+  const res = await fetch(`${EPPN.API_BASE}/login-request`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email })
+  });
+  if (!res.ok) throw new Error('Request failed');
+  return res.json();
+}
+
+sendBtn.addEventListener('click', async () => {
+  const email = emailInput.value.trim();
+  if (!email) {
+    emailStatus.className = 'eppn-status err';
+    emailStatus.textContent = 'Enter your email first.';
+    return;
+  }
+
+  sendBtn.disabled = true;
+  sendBtn.textContent = 'Sending…';
+  emailStatus.className = 'eppn-status';
+
+  try {
+    await requestCode(email);
+    currentEmail = email;
+    codeSub.textContent = `If ${email} is subscribed, we just sent a 6-digit code there. It expires in 10 minutes.`;
+    stepEmail.style.display = 'none';
+    stepCode.style.display = 'block';
+    codeInput.focus();
+  } catch (err) {
+    emailStatus.className = 'eppn-status err';
+    emailStatus.textContent = 'Something went wrong sending the code. Please try again.';
+    console.error(err);
+  } finally {
+    sendBtn.disabled = false;
+    sendBtn.textContent = 'Send login code';
+  }
+});
+
+verifyBtn.addEventListener('click', async () => {
+  const code = codeInput.value.trim();
+  if (!code) {
+    codeStatus.className = 'eppn-status err';
+    codeStatus.textContent = 'Enter the code from your email.';
+    return;
+  }
+
+  verifyBtn.disabled = true;
+  verifyBtn.textContent = 'Verifying…';
+  codeStatus.className = 'eppn-status';
+
+  try {
+    const res = await fetch(`${EPPN.API_BASE}/login-verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: currentEmail, code })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      codeStatus.className = 'eppn-status err';
+      codeStatus.textContent = data.error || 'Incorrect or expired code.';
+      return;
+    }
+
+    EPPN.setEmail(currentEmail);
+    codeStatus.className = 'eppn-status ok';
+    codeStatus.textContent = 'Logged in! Redirecting…';
+    setTimeout(() => { location.href = getNextPage(); }, 600);
+  } catch (err) {
+    codeStatus.className = 'eppn-status err';
+    codeStatus.textContent = 'Something went wrong verifying your code. Please try again.';
+    console.error(err);
+  } finally {
+    verifyBtn.disabled = false;
+    verifyBtn.textContent = 'Verify & log in';
+  }
+});
+
+resendBtn.addEventListener('click', async () => {
+  resendBtn.disabled = true;
+  resendBtn.textContent = 'Sending…';
+  try {
+    await requestCode(currentEmail);
+    codeStatus.className = 'eppn-status ok';
+    codeStatus.textContent = 'A new code is on its way.';
+  } catch (err) {
+    codeStatus.className = 'eppn-status err';
+    codeStatus.textContent = 'Could not resend right now. Please try again.';
+  } finally {
+    resendBtn.disabled = false;
+    resendBtn.textContent = 'Resend code';
+  }
+});
+
+document.getElementById('change-email-btn').addEventListener('click', () => {
+  stepCode.style.display = 'none';
+  stepEmail.style.display = 'block';
+  codeInput.value = '';
+  codeStatus.className = 'eppn-status';
+});
+
+// If already logged in, just bounce to home
+document.addEventListener('DOMContentLoaded', () => {
+  if (EPPN.isLoggedIn()) location.href = 'index.html';
+});
+</script>
+
+</body>
+</html>

@@ -175,11 +175,10 @@ function renderEditor(name) {
     statusBox.className = 'eppn-status';
 
     try {
-      const res = await fetch(`${EPPN.API_BASE}/update-portfolio`, {
+      const res = await EPPN.authFetch('/update-portfolio', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: currentEmail,
           portfolio: portfolio.map(s => s.symbol).join(', ')
         })
       });
@@ -200,12 +199,12 @@ function renderEditor(name) {
 
 async function init() {
   if (!EPPN.requireLogin('edit-portfolio.html')) return;
-  currentEmail = EPPN.getEmail();
 
   try {
-    const res = await fetch(`${EPPN.API_BASE}/get-portfolio?email=${encodeURIComponent(currentEmail)}`);
+    const res = await EPPN.authFetch('/get-portfolio');
     if (!res.ok) throw new Error('Could not load portfolio');
     const data = await res.json();
+    currentEmail = data.email || '';
 
     portfolio = (data.portfolio || '')
       .split(',')

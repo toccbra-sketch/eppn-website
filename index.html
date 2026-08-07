@@ -93,12 +93,10 @@ async function renderPage() {
     return;
   }
 
-  const email = EPPN.getEmail();
-
   try {
     const [portfolioRes, quotesRes] = await Promise.all([
-      fetch(`${EPPN.API_BASE}/get-portfolio?email=${encodeURIComponent(email)}`),
-      fetch(`${EPPN.API_BASE}/portfolio-quotes?email=${encodeURIComponent(email)}`)
+      EPPN.authFetch('/get-portfolio'),
+      EPPN.authFetch('/portfolio-quotes')
     ]);
 
     if (!portfolioRes.ok) throw new Error('Could not load subscriber record');

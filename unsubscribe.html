@@ -49,11 +49,7 @@ function renderConfirm() {
     btn.textContent = 'Unsubscribing…';
 
     try {
-      const res = await fetch(`${EPPN.API_BASE}/unsubscribe`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: currentEmail })
-      });
+      const res = await EPPN.authFetch('/unsubscribe', { method: 'POST' });
       if (!res.ok) throw new Error('Unsubscribe failed');
 
       EPPN.logout();
@@ -72,11 +68,25 @@ function renderConfirm() {
   });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+async function init() {
   if (!EPPN.requireLogin('unsubscribe.html')) return;
-  currentEmail = EPPN.getEmail();
-  renderConfirm();
-});
+  try {
+    const res = await EPPN.authFetch('/get-portfolio');
+    if (!res.ok) throw new Error('Could not load account');
+    const data = await res.json();
+    currentEmail = data.email || '';
+    renderConfirm();
+  } catch (err) {
+    console.error(err);
+    content.innerHTML = `
+      <div class="eppn-status err" style="display:block;">
+        We couldn't load your account. Try <a href="login.html">logging in</a> again.
+      </div>
+    `;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', init);
 </script>
 
 </body>

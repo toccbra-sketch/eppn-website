@@ -8,19 +8,41 @@
 
 const EPPN = {
   API_BASE: 'https://eppn-backend.onrender.com',
-  STORAGE_KEY: 'eppn_email',
+  STORAGE_KEY: 'eppn_token',
 
-  getEmail() {
+  getToken() {
     return localStorage.getItem(this.STORAGE_KEY);
   },
-  setEmail(email) {
-    localStorage.setItem(this.STORAGE_KEY, email);
+  setToken(token) {
+    localStorage.setItem(this.STORAGE_KEY, token);
   },
   isLoggedIn() {
-    return !!this.getEmail();
+    return !!this.getToken();
   },
   logout() {
+    // Best-effort: invalidate the token server-side too, so it can't be
+    // reused even if it leaked. Don't block on the response — clearing the
+    // local copy is what actually matters for this browser.
+    const token = this.getToken();
+    if (token) {
+      fetch(`${this.API_BASE}/logout`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      }).catch(() => {});
+    }
     localStorage.removeItem(this.STORAGE_KEY);
+  },
+
+  /* Wrapper around fetch() that attaches the session token as a Bearer
+     Authorization header. Use this instead of raw fetch() for any call to a
+     login-gated endpoint (get-portfolio, portfolio-quotes, update-portfolio,
+     unsubscribe). */
+  authFetch(path, options = {}) {
+    const token = this.getToken();
+    const headers = Object.assign({}, options.headers || {}, {
+      'Authorization': `Bearer ${token}`
+    });
+    return fetch(`${this.API_BASE}${path}`, Object.assign({}, options, { headers }));
   },
 
   /* Call at the top of a page that requires login. Redirects to the login

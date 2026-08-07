@@ -142,7 +142,7 @@ verifyBtn.addEventListener('click', async () => {
       return;
     }
 
-    EPPN.setEmail(currentEmail);
+    EPPN.setToken(data.token);
     codeStatus.className = 'eppn-status ok';
     codeStatus.textContent = 'Logged in! Redirecting…';
     setTimeout(() => { location.href = getNextPage(); }, 600);

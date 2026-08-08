@@ -6,8 +6,28 @@
 <title>Feedback — The Portfolio Briefcase</title>
 <link rel="stylesheet" href="eppn-common.css">
 <style>
-  h1 { font-size: 22px; margin: 0 0 8px; color: var(--navy-900); }
-  .sub { font-family: Arial, sans-serif; font-size: 13px; color: var(--muted); }
+  h1 { font-size: 22px; margin: 0 0 4px; color: var(--navy-900); }
+  .sub { font-family: Arial, sans-serif; font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+  textarea {
+    width: 100%;
+    padding: 9px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    resize: vertical;
+    min-height: 120px;
+  }
+  textarea:focus { outline: 2px solid var(--navy-600); outline-offset: 1px; }
+  /* Honeypot field — present in the DOM for bots to find and fill in, but
+     invisible and unreachable for real visitors (off-screen, not just
+     display:none, since some bots skip fields hidden that obviously). */
+  .hp-field {
+    position: absolute;
+    left: -9999px;
+    top: -9999px;
+  }
+  button.submit { margin-top: 20px; }
 </style>
 </head>
 <body data-page="feedback">
@@ -17,14 +37,88 @@
 <div class="eppn-page">
   <div class="eppn-container">
     <div class="eppn-card">
+
       <h1>Feedback</h1>
-      <div class="sub">This page is coming soon. In the meantime, reach us directly at
-        <a href="mailto:contact@theportfoliobriefcase.com">contact@theportfoliobriefcase.com</a>.
+      <div class="sub">Missing a ticker, spot something off, or just have a suggestion? Send it straight to us below.</div>
+
+      <label for="fb-name">Name (optional)</label>
+      <input type="text" id="fb-name" placeholder="Jane Smith">
+
+      <label for="fb-email">Email (optional — include it if you'd like a reply)</label>
+      <input type="email" id="fb-email" placeholder="jane@email.com">
+
+      <label for="fb-message">Message</label>
+      <textarea id="fb-message" placeholder="What's on your mind?"></textarea>
+
+      <div class="hp-field" aria-hidden="true">
+        <label for="fb-website">Website</label>
+        <input type="text" id="fb-website" name="website" tabindex="-1" autocomplete="off">
       </div>
+
+      <button class="eppn-btn submit" id="submit-btn" disabled>Send feedback</button>
+      <div class="eppn-status" id="status"></div>
+
+      <div class="sub" style="margin-top:16px;">
+        Prefer email directly? Reach us at <a href="mailto:contact@theportfoliobriefcase.com">contact@theportfoliobriefcase.com</a>.
+      </div>
+
     </div>
   </div>
 </div>
 
 <script src="eppn-common.js"></script>
+<script>
+const nameInput = document.getElementById('fb-name');
+const emailInput = document.getElementById('fb-email');
+const messageInput = document.getElementById('fb-message');
+const websiteInput = document.getElementById('fb-website'); // honeypot
+const submitBtn = document.getElementById('submit-btn');
+const statusBox = document.getElementById('status');
+
+function validateForm() {
+  submitBtn.disabled = messageInput.value.trim().length === 0;
+}
+messageInput.addEventListener('input', validateForm);
+
+submitBtn.addEventListener('click', async () => {
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Sending…';
+  statusBox.className = 'eppn-status';
+
+  try {
+    const res = await fetch(`${EPPN.API_BASE}/feedback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: nameInput.value.trim(),
+        email: emailInput.value.trim(),
+        message: messageInput.value.trim(),
+        website: websiteInput.value.trim() // honeypot — stays empty for real users
+      })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      statusBox.className = 'eppn-status err';
+      statusBox.textContent = data.error || 'Something went wrong sending your feedback. Please try again.';
+      return;
+    }
+
+    statusBox.className = 'eppn-status ok';
+    statusBox.textContent = "Thanks — your feedback's been sent!";
+    nameInput.value = '';
+    emailInput.value = '';
+    messageInput.value = '';
+  } catch (err) {
+    statusBox.className = 'eppn-status err';
+    statusBox.textContent = 'Something went wrong sending your feedback. Please try again.';
+    console.error(err);
+  } finally {
+    submitBtn.textContent = 'Send feedback';
+    validateForm();
+  }
+});
+</script>
+
 </body>
 </html>

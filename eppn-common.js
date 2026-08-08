@@ -131,4 +131,20 @@ function eppnRenderNav() {
   }
 }
 
+function eppnRenderFooter() {
+  // Appended directly to <body> — no placeholder div needed in each page,
+  // so every page gets this automatically just by including this script.
+  const footer = document.createElement('div');
+  footer.className = 'eppn-footer';
+  footer.innerHTML = `
+    <a href="privacy-policy.html">Privacy Policy</a>
+    <span class="eppn-footer-sep">·</span>
+    <a href="terms.html">Terms of Service</a>
+    <br>
+    &copy; ${new Date().getFullYear()} The Portfolio Briefcase
+  `;
+  document.body.appendChild(footer);
+}
+
 document.addEventListener('DOMContentLoaded', eppnRenderNav);
+document.addEventListener('DOMContentLoaded', eppnRenderFooter);

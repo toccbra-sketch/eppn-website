@@ -100,6 +100,13 @@
         </label>
       </div>
 
+      <div class="agree">
+        <input type="checkbox" id="legal-check">
+        <label for="legal-check" style="margin:0; font-weight:normal;">
+          I have read and agree to the <a href="privacy-policy.html" target="_blank" rel="noopener">Privacy Policy</a> and <a href="terms.html" target="_blank" rel="noopener">Terms of Service</a>.
+        </label>
+      </div>
+
       <button class="eppn-btn submit" id="submit-btn" disabled>Subscribe</button>
       <div class="eppn-status" id="status"></div>
 
@@ -126,6 +133,7 @@ const portfolioBox = document.getElementById('portfolio');
 const nameInput = document.getElementById('name');
 const emailInput = document.getElementById('email');
 const agreeCheck = document.getElementById('agree-check');
+const legalCheck = document.getElementById('legal-check');
 const submitBtn = document.getElementById('submit-btn');
 const statusBox = document.getElementById('status');
 
@@ -214,12 +222,14 @@ function validateForm() {
   const ok = nameInput.value.trim().length > 0 &&
              isValidEmail(emailInput.value.trim()) &&
              portfolio.length > 0 &&
-             agreeCheck.checked;
+             agreeCheck.checked &&
+             legalCheck.checked;
   submitBtn.disabled = !ok;
 }
 
 [nameInput, emailInput].forEach(el => el.addEventListener('input', validateForm));
 agreeCheck.addEventListener('change', validateForm);
+legalCheck.addEventListener('change', validateForm);
 
 submitBtn.addEventListener('click', async () => {
   const name = nameInput.value.trim();
@@ -250,6 +260,7 @@ submitBtn.addEventListener('click', async () => {
     nameInput.value = '';
     emailInput.value = '';
     agreeCheck.checked = false;
+    legalCheck.checked = false;
     portfolio = [];
     renderPortfolio();
 

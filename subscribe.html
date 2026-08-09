@@ -235,11 +235,16 @@ submitBtn.addEventListener('click', async () => {
   const name = nameInput.value.trim();
   const email = emailInput.value.trim();
 
+  // Referral code, if this page was reached via someone's referral link
+  // (e.g. subscribe.html?ref=abc123). Silently omitted if not present.
+  const referredBy = new URLSearchParams(location.search).get('ref') || '';
+
   const record = {
     name,
     email,
     portfolio: portfolio.map(s => s.symbol).join(', '),
-    status: 'active'
+    status: 'active',
+    referredBy
   };
 
   submitBtn.disabled = true;

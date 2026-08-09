@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Referrals — The Portfolio Briefcase</title>
+<link rel="stylesheet" href="eppn-common.css">
+<style>
+  h1 { font-size: 22px; margin: 0 0 4px; color: var(--navy-900); }
+  .sub { font-family: Arial, sans-serif; font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+
+  .link-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .link-row input {
+    flex: 1;
+    background: #f6f5f1;
+    color: var(--ink);
+  }
+  .link-row button {
+    flex-shrink: 0;
+    width: auto;
+    padding: 9px 16px;
+  }
+
+  .referral-count {
+    margin-top: 28px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    text-align: center;
+  }
+  .referral-count .num {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 32px;
+    color: var(--navy-900);
+    line-height: 1;
+  }
+  .referral-count .label {
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+</style>
+</head>
+<body data-page="referrals">
+
+<div id="eppn-nav-root"></div>
+
+<div class="eppn-page">
+  <div class="eppn-container">
+    <div class="eppn-card" id="page-content">
+      <p class="eppn-spinner-note">Loading…</p>
+    </div>
+  </div>
+</div>
+
+<script src="eppn-common.js"></script>
+<script>
+const content = document.getElementById('page-content');
+
+function renderPage(referralCode, referralCount) {
+  const referralLink = `${location.origin}/subscribe.html?ref=${referralCode}`;
+
+  content.innerHTML = `
+    <h1>Your referral link</h1>
+    <div class="sub">Share this with a friend — when they subscribe, you'll get credit for it.</div>
+
+    <label for="ref-link">Your unique link</label>
+    <div class="link-row">
+      <input type="text" id="ref-link" value="${referralLink}" readonly>
+      <button class="eppn-btn" id="copy-btn">Copy</button>
+    </div>
+    <div class="eppn-status" id="status"></div>
+
+    <div class="referral-count">
+      <div class="num">${referralCount}</div>
+      <div class="label">Friends referred</div>
+    </div>
+  `;
+
+  const linkInput = document.getElementById('ref-link');
+  const copyBtn = document.getElementById('copy-btn');
+  const statusBox = document.getElementById('status');
+
+  copyBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(referralLink);
+      statusBox.className = 'eppn-status ok';
+      statusBox.textContent = 'Copied to clipboard!';
+    } catch (err) {
+      // Clipboard API can fail (older browsers, permissions) — fall back to
+      // manual select so the person can still copy it themselves.
+      linkInput.select();
+      statusBox.className = 'eppn-status info';
+      statusBox.textContent = 'Link selected — press Ctrl/Cmd+C to copy.';
+    }
+  });
+}
+
+async function init() {
+  if (!EPPN.requireLogin('referrals.html')) return;
+
+  try {
+    const res = await EPPN.authFetch('/get-portfolio');
+    if (!res.ok) throw new Error('Could not load account');
+    const data = await res.json();
+
+    if (!data.referralCode) {
+      content.innerHTML = `
+        <div class="eppn-status err" style="display:block;">
+          Referral links aren't available on your account yet. Try refreshing, or check back shortly.
+        </div>
+      `;
+      return;
+    }
+
+    renderPage(data.referralCode, data.referralCount || 0);
+  } catch (err) {
+    console.error(err);
+    content.innerHTML = `
+      <div class="eppn-status err" style="display:block;">
+        We couldn't load your referral link. Try <a href="login.html">logging in</a> again.
+      </div>
+    `;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+
+</body>
+</html>

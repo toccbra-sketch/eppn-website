@@ -151,7 +151,7 @@ async function renderPage() {
       </div>
 
       <div style="text-align:center; font-family:Arial,sans-serif; font-size:13px; color:var(--muted); margin-top:18px;">
-        Your Referrals: <strong style="color:var(--navy-900);">${portfolioData.referralCount ?? 0}</strong>
+        <a href="referrals.html" style="color:var(--navy-700);">Your Referrals: <strong style="color:var(--navy-900);">${portfolioData.referralCount ?? 0}</strong></a>
       </div>
     `;
   } catch (err) {

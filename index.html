@@ -149,6 +149,10 @@ async function renderPage() {
         <p><strong>Third-party pricing.</strong> Prices and % changes shown here are pulled from a third-party data provider and may be delayed, incomplete, or occasionally inaccurate.</p>
         <p><strong>No advisory relationship.</strong> The Portfolio Briefcase is not a registered investment advisor and does not act in a fiduciary capacity for subscribers.</p>
       </div>
+
+      <div style="text-align:center; font-family:Arial,sans-serif; font-size:13px; color:var(--muted); margin-top:18px;">
+        Your Referrals: <strong style="color:var(--navy-900);">${portfolioData.referralCount ?? 0}</strong>
+      </div>
     `;
   } catch (err) {
     console.error(err);

@@ -87,6 +87,7 @@ function eppnRenderNav() {
       <a href="${loggedIn ? '#' : 'login.html'}" id="eppn-login-link" data-page="login">${loggedIn ? 'Log out' : 'Log in'}</a>
       <a href="subscribe.html" data-page="subscribe">Subscribe</a>
       <a href="edit-portfolio.html" data-page="edit-portfolio">Edit portfolio</a>
+      <a href="referrals.html" data-page="referrals">Referrals</a>
       <a href="unsubscribe.html" data-page="unsubscribe">Unsubscribe</a>
       <a href="feedback.html" data-page="feedback">Feedback</a>
     </nav>

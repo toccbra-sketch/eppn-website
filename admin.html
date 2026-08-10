@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin — The Portfolio Briefcase</title>
+<link rel="stylesheet" href="eppn-common.css">
+<style>
+  body { padding-top: 40px; }
+  .admin-container { max-width: 640px; margin: 0 auto; padding: 0 16px 48px; }
+  h1 { font-size: 22px; color: var(--navy-900); margin: 0 0 4px; }
+  .sub { font-family: Arial, sans-serif; font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .stat-card {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+    text-align: center;
+  }
+  .stat-card .num {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 28px;
+    color: var(--navy-900);
+    line-height: 1;
+  }
+  .stat-card .label {
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+  .section-title {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 16px;
+    color: var(--navy-900);
+    margin: 28px 0 4px;
+  }
+  .na { color: #ccc; }
+  #key-gate { max-width: 360px; margin: 60px auto; text-align: center; }
+</style>
+</head>
+<body>
+
+<div class="admin-container">
+  <div id="key-gate">
+    <h1>Admin Dashboard</h1>
+    <div class="sub">Enter your admin key to view stats.</div>
+    <input type="password" id="admin-key-input" placeholder="Admin key" style="text-align:center;">
+    <button class="eppn-btn" id="unlock-btn" style="margin-top:12px;">View Stats</button>
+    <div class="eppn-status" id="gate-status"></div>
+  </div>
+
+  <div id="dashboard" style="display:none;"></div>
+</div>
+
+<script>
+const API_BASE = 'https://eppn-backend.onrender.com';
+const SESSION_KEY = 'eppn_admin_key'; // sessionStorage only — cleared when the tab closes
+
+async function loadStats(key) {
+  const res = await fetch(`${API_BASE}/admin/stats`, {
+    headers: { 'X-Admin-Key': key }
+  });
+  if (!res.ok) throw new Error(res.status === 401 ? 'Incorrect admin key' : 'Could not load stats');
+  return res.json();
+}
+
+function renderDashboard(stats) {
+  const s = stats.subscribers;
+  const perf = stats.email_performance;
+  const sponsorClicks = stats.sponsor_clicks;
+
+  document.getElementById('key-gate').style.display = 'none';
+  const dash = document.getElementById('dashboard');
+  dash.style.display = 'block';
+
+  dash.innerHTML = `
+    <h1>Admin Dashboard</h1>
+    <div class="sub">Last updated ${new Date().toLocaleString()}</div>
+
+    <div class="section-title">Subscribers</div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="num">${s ? s.active : '<span class="na">—</span>'}</div><div class="label">Active</div></div>
+      <div class="stat-card"><div class="num">${s ? s.total : '<span class="na">—</span>'}</div><div class="label">Total (all-time)</div></div>
+      <div class="stat-card"><div class="num">${s ? s.inactive : '<span class="na">—</span>'}</div><div class="label">Unsubscribed</div></div>
+      <div class="stat-card"><div class="num">${s ? s.total_referrals : '<span class="na">—</span>'}</div><div class="label">Total referrals</div></div>
+    </div>
+    ${s && s.top_referrer_name ? `<div class="sub" style="margin-top:10px;">Top referrer: <strong>${s.top_referrer_name}</strong></div>` : ''}
+
+    <div class="section-title">Newsletter performance (last 30 days)</div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="num">${perf ? perf.delivered : '<span class="na">—</span>'}</div><div class="label">Delivered</div></div>
+      <div class="stat-card"><div class="num">${perf && perf.open_rate_pct != null ? perf.open_rate_pct + '%' : '<span class="na">—</span>'}</div><div class="label">Open rate</div></div>
+      <div class="stat-card"><div class="num">${perf && perf.click_rate_pct != null ? perf.click_rate_pct + '%' : '<span class="na">—</span>'}</div><div class="label">Click rate</div></div>
+      <div class="stat-card"><div class="num">${perf ? perf.unique_clicks : '<span class="na">—</span>'}</div><div class="label">Unique clicks</div></div>
+    </div>
+    ${!perf ? '<div class="sub" style="margin-top:10px;">Email performance unavailable right now — check the Brevo API key or try again shortly.</div>' : ''}
+
+    <div class="section-title">Sponsor</div>
+    <div class="stat-grid">
+      <div class="stat-card" style="grid-column: 1 / -1;"><div class="num">${sponsorClicks != null ? sponsorClicks : '<span class="na">—</span>'}</div><div class="label">Total sponsor link clicks (all-time)</div></div>
+    </div>
+
+    <button class="eppn-btn eppn-btn-secondary" id="refresh-btn" style="margin-top:24px;">Refresh</button>
+  `;
+
+  document.getElementById('refresh-btn').addEventListener('click', () => {
+    const savedKey = sessionStorage.getItem(SESSION_KEY);
+    if (savedKey) init(savedKey);
+  });
+}
+
+async function init(key) {
+  try {
+    const stats = await loadStats(key);
+    sessionStorage.setItem(SESSION_KEY, key);
+    renderDashboard(stats);
+  } catch (err) {
+    sessionStorage.removeItem(SESSION_KEY);
+    document.getElementById('key-gate').style.display = 'block';
+    document.getElementById('dashboard').style.display = 'none';
+    const status = document.getElementById('gate-status');
+    status.className = 'eppn-status err';
+    status.textContent = err.message || 'Something went wrong.';
+  }
+}
+
+document.getElementById('unlock-btn').addEventListener('click', () => {
+  const key = document.getElementById('admin-key-input').value.trim();
+  if (key) init(key);
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const savedKey = sessionStorage.getItem(SESSION_KEY);
+  if (savedKey) init(savedKey);
+});
+</script>
+
+</body>
+</html>

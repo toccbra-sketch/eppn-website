@@ -58,9 +58,9 @@ const EPPN = {
 
 const BRIEFCASE_ICON = `
 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect x="2.5" y="8" width="19" height="12.5" rx="1.8" stroke="#ffffff" stroke-width="1.6"/>
-  <path d="M8.5 8V6.3C8.5 5.1 9.5 4 10.8 4H13.2C14.5 4 15.5 5.1 15.5 6.3V8" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round"/>
-  <rect x="10.3" y="12.5" width="3.4" height="2.4" rx="0.5" fill="#ffffff"/>
+  <rect x="2.5" y="8" width="19" height="12.5" rx="1.8" stroke="#B08D57" stroke-width="1.6"/>
+  <path d="M8.5 8V6.3C8.5 5.1 9.5 4 10.8 4H13.2C14.5 4 15.5 5.1 15.5 6.3V8" stroke="#B08D57" stroke-width="1.6" stroke-linecap="round"/>
+  <rect x="10.3" y="12.5" width="3.4" height="2.4" rx="0.5" fill="#B08D57"/>
 </svg>`;
 
 function eppnRenderNav() {
